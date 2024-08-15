@@ -19,7 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 async function checkVisisted() {
-  const result = await db.query("SELECT country_code FROM visited_country");
+  const result = await db.query("SELECT country_code FROM visited_countries");
   let countries = [];
   result.rows.forEach((country) => {
     countries.push(country.country_code);
@@ -33,6 +33,7 @@ app.get("/", async (req, res) => {
   res.render("index.ejs", { countries: countries, total: countries.length });
 });
 
+var result;
 app.post("/add", async (req, res) => {
   const country = req.body.country;
   try {
@@ -40,11 +41,22 @@ app.post("/add", async (req, res) => {
       "SELECT country_code FROM countries WHERE LOWER(country_name) LIKE '%' || $1 || '%'",
       [`${country.toLowerCase()}`]
     );
-    // console.log(`code is : ${ct_code.rows[0].country_code} country ${titleCase(country)}`);
+    result = ct_code.rows[0].country_code;
+    // console.log(result);
+    // console.log(ct_code);
+
     try {
-      const query = "INSERT INTO visited_country (country_code) VALUES ($1)";
-      db.query(query, [ct_code.rows[0].country_code], (err, result) => {
+      const ct = await checkVisisted();
+      if (ct.includes(`${result}`) || result == []) {
+        // res.send("Country already visited");
+        // console.log(ct);
+        throw new Error("Country already visited");
+      }
+      const query = "INSERT INTO visited_countries (country_code) VALUES ($1)";
+      // console.log(query);
+      db.query(query, [result], (err, result) => {
         res.redirect("/");
+        // console.log("hello test 2 ");
       });
     } catch (err) {
       console.error(err);
